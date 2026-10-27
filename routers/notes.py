@@ -59,3 +59,15 @@ def update_note(note_id: int, update_note: Note):
     note.status = update_note.status
 
     return note
+
+@router.patch("/{note_id}/status")
+def update_note_status(note_id: int, status_data: Note):
+    note = notes.get(note_id)
+    if not note:
+        raise HTTPException(
+            status_code=404,
+            detail="this note does not exist"
+        )
+
+    note.completed = status_data.completed
+    return note
