@@ -6,4 +6,3 @@ class Note(BaseModel):
     title: str = Field(max_length=50)
     description: str | None = None
     status: str = Field(max_length=10)
-
