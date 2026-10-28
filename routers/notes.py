@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, HTTPException
-from schemas import Note
+from schemas import NoteCreate, NoteUpdate, Note, NoteStatusUpdate
 import storage
 from storage import notes
 
@@ -13,11 +13,11 @@ router = APIRouter(
 
 @router.get("/")
 def get_notes(limit: int = 10):
-    return list(storage.notes.values())[:limit]
+    return list(notes.values())[:limit]
 
 @router.get("/{note_id}")
 def get_note(note_id: int):
-    note = storage.notes.get(note_id)
+    note = notes.get(note_id)
     if not note:
         raise HTTPException(
             status_code=404,
@@ -26,17 +26,38 @@ def get_note(note_id: int):
     return note
 
 @router.post("/", status_code=201)
-def create_note(note: Note):
-    global_next_id = storage.next_id
+def create_note(note_data: NoteCreate):
+    new_id = storage.next_id
 
-    note.id = global_next_id
-    notes[global_next_id] = note
+    note = Note(
+        id=new_id,
+        **note_data.model_dump()
+    )
+
+    notes[new_id] = note
     storage.next_id += 1
+    return note
+
+@router.patch("/{note_id}")
+def update_note(note_id: int, update_note: NoteUpdate):
+    note = notes.get(note_id)
+
+    if not note:
+        raise HTTPException(
+            status_code=404,
+            detail="this note does not exist"
+        )
+
+    data = update_note.model_dump(exclude_unset=True)
+
+    for field, value in data.items():
+        setattr(note, field, value)
+
     return note
 
 @router.delete("/{note_id}")
 def delete_note(note_id: int):
-    note = storage.notes.pop(note_id, None)
+    note = notes.pop(note_id, None)
 
     if not note:
         raise HTTPException(
@@ -45,29 +66,13 @@ def delete_note(note_id: int):
         )
     return note
 
-@router.put("/{note_id}")
-def update_note(note_id: int, update_note: Note):
-    note = notes.get(note_id)
-
-    if not note:
-        raise HTTPException(
-            status_code=404,
-            detail="this note does not exist"
-        )
-    note.title = update_note.title
-    note.description = update_note.description
-    note.completed = update_note.completed
-
-    return note
-
 @router.patch("/{note_id}/status")
-def update_note_status(note_id: int, status_data: Note):
+def update_note_status(note_id: int, status_data: NoteStatusUpdate):
     note = notes.get(note_id)
     if not note:
         raise HTTPException(
             status_code=404,
             detail="this note does not exist"
         )
-
     note.completed = status_data.completed
-    return note
+    return {"completed": note.completed}
