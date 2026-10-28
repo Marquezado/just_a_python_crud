@@ -56,7 +56,7 @@ def update_note(note_id: int, update_note: Note):
         )
     note.title = update_note.title
     note.description = update_note.description
-    note.status = update_note.status
+    note.completed = update_note.completed
 
     return note
 
